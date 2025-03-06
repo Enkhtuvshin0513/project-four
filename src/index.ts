@@ -1,9 +1,16 @@
 import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
+import { expressMiddleware } from "@apollo/server/express4";
+import express from "express";
 
-// A schema is a collection of type definitions (hence "typeDefs")
-// that together define the "shape" of queries that are executed against
-// your data.
+const app = express();
+
+interface Book {
+  title: string;
+  author: string;
+
+  authorAndTitle: string;
+}
+
 const typeDefs = `
   type Book {
     title: String
@@ -38,7 +45,7 @@ const books = [
 const resolvers = {
   Query: {
     books: (_parent: unknown) => {
-      return books;
+      return;
     },
     book: (_parent: unknown, args: { title: string }) => {
       return books.find(book => book.title === args.title);
@@ -54,7 +61,7 @@ const resolvers = {
   },
 
   Book: {
-    authorAndTitle: (parent: any) => {
+    authorAndTitle: (parent: Book) => {
       return `${parent.author} ${parent.title}`;
     }
   }
@@ -65,11 +72,32 @@ const server = new ApolloServer({
   resolvers
 });
 
-const startServer = async () => {
-  const { url } = await startStandaloneServer(server, {
-    listen: { port: 4000 }
+app.get("/books", (_req, res) => {
+  const newBooks = books.map((book: any) => {
+    book.authorAndTitle = `${book.author} ${book.title}`;
+    return book;
   });
-  console.log(`🚀  Server ready at: ${url}`);
+
+  res.send(newBooks);
+});
+
+app.get("/book", (_req, res) => {
+  const newBooks = books.map((book: any) => {
+    book.authorAndTitle = `${book.author} ${book.title}`;
+    return book;
+  });
+
+  res.send(newBooks[0]);
+});
+
+const startServer = async () => {
+  await server.start();
+
+  app.use("/graphql", express.json(), expressMiddleware(server));
+
+  app.listen(3000, () => {
+    console.log("server started on 3000");
+  });
 };
 
 startServer();
