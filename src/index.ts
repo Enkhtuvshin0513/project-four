@@ -31,10 +31,10 @@ const books = [
 // This resolver retrieves books from the "books" array above.
 const resolvers = {
   Query: {
-    books: (_parent: any, args: { title: string }) => {
+    books: (_parent: unknown, args: { title: string }) => {
       return books.filter(book => book.title === args.title);
     },
-    book: (_parent: any, args: { title: string }) => {
+    book: (_parent: unknown, args: { title: string }) => {
       return books.find(book => book.title === args.title);
     }
   }
