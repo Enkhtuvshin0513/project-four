@@ -8,11 +8,17 @@ const typeDefs = `
   type Book {
     title: String
     author: String
+
+    authorAndTitle: String
   }
 
   type Query {
-    books(title: String!): [Book]
+    books(title: String): [Book]
     book(title: String!): Book
+  }
+
+  type Mutation{
+    bookAdd(title: String!, author: String!): [Book]
   }
 `;
 
@@ -31,26 +37,33 @@ const books = [
 // This resolver retrieves books from the "books" array above.
 const resolvers = {
   Query: {
-    books: (_parent: unknown, args: { title: string }) => {
-      return books.filter(book => book.title === args.title);
+    books: (_parent: unknown) => {
+      return books;
     },
     book: (_parent: unknown, args: { title: string }) => {
       return books.find(book => book.title === args.title);
     }
+  },
+
+  Mutation: {
+    bookAdd: (_parent: unknown, args: { title: string; author: string }) => {
+      books.push(args);
+
+      return books;
+    }
+  },
+
+  Book: {
+    authorAndTitle: (parent: any) => {
+      return `${parent.author} ${parent.title}`;
+    }
   }
 };
 
-// The ApolloServer constructor requires two parameters: your schema
-// definition and your set of resolvers.
 const server = new ApolloServer({
   typeDefs,
   resolvers
 });
-
-// Passing an ApolloServer instance to the `startStandaloneServer` function:
-//  1. creates an Express app
-//  2. installs your ApolloServer instance as middleware
-//  3. prepares your app to handle incoming requests
 
 const startServer = async () => {
   const { url } = await startStandaloneServer(server, {
