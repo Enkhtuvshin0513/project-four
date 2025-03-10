@@ -1,21 +1,31 @@
 import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
+// import { startStandaloneServer } from "@apollo/server/standalone";
 
-// import { expressMiddleware } from "@apollo/server/express4";
-// import express from "express";
+import { expressMiddleware } from "@apollo/server/express4";
+import express from "express";
 
-// const app = express();
+const app = express();
 
 interface Book {
   title: string;
   author: string;
-  authorAndTitle: string;
+  authorAndTitle?: string;
+}
+
+interface Player {
+  firstName: string;
+  age: number;
+  height: number;
+  active: boolean;
+  favoriteBooks?: String[];
 }
 
 const typeDefs = `
   type Book {
     title: String 
     author: String
+
+    authorAndTitle: String
   }
 
   type Player {
@@ -28,8 +38,10 @@ const typeDefs = `
   }
     
   type Query {
-    books(title: String): [Book]
+    books: [Book]
     book(title: String!): Book
+
+    players: [Player]
   }
 
   type Mutation {
@@ -37,9 +49,9 @@ const typeDefs = `
   }
 `;
 
-const books = [
+const books: Book[] = [
   {
-    title: "The Awakening",
+    title: "The Awaksdsening",
     author: "Kate Chopin"
   },
   {
@@ -48,15 +60,28 @@ const books = [
   }
 ];
 
-// Resolvers define how to fetch the types defined in your schema.
-// This resolver retrieves books from the "books" array above.
+const players: Player[] = [
+  {
+    firstName: "Bat",
+    age: 18,
+    active: true,
+    height: 6.7,
+    favoriteBooks: ["The Awaksdsening", "City of Glass"]
+  }
+];
+
 const resolvers = {
   Query: {
-    books: (_parent: undefined, args: { title?: string }, context: any) => {
+    books: () => {
       return books;
     },
+
     book: (_parent: undefined, args: { title: string }) => {
       return books.find(book => book.title === args.title);
+    },
+
+    players: () => {
+      return players;
     }
   },
 
@@ -66,13 +91,27 @@ const resolvers = {
 
       return "Nom amjilttai nemlee";
     }
-  }
+  },
 
-  // Book: {
-  //   authorAndTitle: (parent: Book) => {
-  //     return `${parent.author} ${parent.title}`;
-  //   }
-  // }
+  Book: {
+    authorAndTitle: (parent: Book) => {
+      return `${parent.author} ${parent.title}`;
+    }
+  },
+
+  Player: {
+    favoriteBooks: (parent: Player) => {
+      const favoriteBooks: Book[] = [];
+
+      parent.favoriteBooks?.forEach(favoriteBook => {
+        const book = books.find(book => book.title === favoriteBook) as Book;
+
+        favoriteBooks.push(book);
+      });
+
+      return favoriteBooks;
+    }
+  }
 };
 
 const server = new ApolloServer({
@@ -80,37 +119,32 @@ const server = new ApolloServer({
   resolvers
 });
 
-// app.get("/books", (_req, res) => {
-//   const newBooks = books.map((book: any) => {
-//     book.authorAndTitle = `${book.author} ${book.title}`;
-//     return book;
-//   });
-
-//   res.send(newBooks);
-// });
-
-// app.get("/book", (_req, res) => {
-//   const newBooks = books.map((book: any) => {
-//     book.authorAndTitle = `${book.author} ${book.title}`;
-//     return book;
-//   });
-
-//   res.send(newBooks[0]);
-// });
-
-const startServer = async () => {
-  await startStandaloneServer(server, {
-    listen: { port: 4000 }
+app.get("/books", (_req, res) => {
+  const newBooks = books.map((book: any) => {
+    book.authorAndTitle = `${book.author} ${book.title}`;
+    return book;
   });
 
-  console.log("server started on 4000");
-  // await server.start();
+  return newBooks;
+});
 
-  // app.use("/graphql", express.json(), expressMiddleware(server));
+app.get("/book", (_req, res) => {
+  const newBooks = books.map((book: any) => {
+    book.authorAndTitle = `${book.author} ${book.title}`;
+    return book;
+  });
 
-  // app.listen(3000, () => {
-  //   console.log("server started on 3000");
-  // });
+  res.send(newBooks[0]);
+});
+
+const startServer = async () => {
+  await server.start();
+
+  app.use("/graphql", express.json(), expressMiddleware(server));
+
+  app.listen(4000, () => {
+    console.log("server started on 4000");
+  });
 };
 
 startServer();
