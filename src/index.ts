@@ -1,31 +1,39 @@
 import { ApolloServer } from "@apollo/server";
-import { expressMiddleware } from "@apollo/server/express4";
-import express from "express";
+import { startStandaloneServer } from "@apollo/server/standalone";
 
-const app = express();
+// import { expressMiddleware } from "@apollo/server/express4";
+// import express from "express";
+
+// const app = express();
 
 interface Book {
   title: string;
   author: string;
-
   authorAndTitle: string;
 }
 
 const typeDefs = `
   type Book {
-    title: String
+    title: String 
     author: String
-
-    authorAndTitle: String
   }
 
+  type Player {
+    firstName: String
+    age: Int
+    height: Float
+    active: Boolean
+
+    favoriteBooks: [Book]
+  }
+    
   type Query {
     books(title: String): [Book]
     book(title: String!): Book
   }
 
-  type Mutation{
-    bookAdd(title: String!, author: String!): [Book]
+  type Mutation {
+    bookAdd(title: String!, author: String!): String
   }
 `;
 
@@ -44,27 +52,27 @@ const books = [
 // This resolver retrieves books from the "books" array above.
 const resolvers = {
   Query: {
-    books: (_parent: unknown) => {
-      return;
+    books: (_parent: undefined, args: { title?: string }, context: any) => {
+      return books;
     },
-    book: (_parent: unknown, args: { title: string }) => {
+    book: (_parent: undefined, args: { title: string }) => {
       return books.find(book => book.title === args.title);
     }
   },
 
   Mutation: {
-    bookAdd: (_parent: unknown, args: { title: string; author: string }) => {
+    bookAdd: (_parent: undefined, args: { title: string; author: string }) => {
       books.push(args);
 
-      return books;
-    }
-  },
-
-  Book: {
-    authorAndTitle: (parent: Book) => {
-      return `${parent.author} ${parent.title}`;
+      return "Nom amjilttai nemlee";
     }
   }
+
+  // Book: {
+  //   authorAndTitle: (parent: Book) => {
+  //     return `${parent.author} ${parent.title}`;
+  //   }
+  // }
 };
 
 const server = new ApolloServer({
@@ -72,32 +80,37 @@ const server = new ApolloServer({
   resolvers
 });
 
-app.get("/books", (_req, res) => {
-  const newBooks = books.map((book: any) => {
-    book.authorAndTitle = `${book.author} ${book.title}`;
-    return book;
-  });
+// app.get("/books", (_req, res) => {
+//   const newBooks = books.map((book: any) => {
+//     book.authorAndTitle = `${book.author} ${book.title}`;
+//     return book;
+//   });
 
-  res.send(newBooks);
-});
+//   res.send(newBooks);
+// });
 
-app.get("/book", (_req, res) => {
-  const newBooks = books.map((book: any) => {
-    book.authorAndTitle = `${book.author} ${book.title}`;
-    return book;
-  });
+// app.get("/book", (_req, res) => {
+//   const newBooks = books.map((book: any) => {
+//     book.authorAndTitle = `${book.author} ${book.title}`;
+//     return book;
+//   });
 
-  res.send(newBooks[0]);
-});
+//   res.send(newBooks[0]);
+// });
 
 const startServer = async () => {
-  await server.start();
-
-  app.use("/graphql", express.json(), expressMiddleware(server));
-
-  app.listen(3000, () => {
-    console.log("server started on 3000");
+  await startStandaloneServer(server, {
+    listen: { port: 4000 }
   });
+
+  console.log("server started on 4000");
+  // await server.start();
+
+  // app.use("/graphql", express.json(), expressMiddleware(server));
+
+  // app.listen(3000, () => {
+  //   console.log("server started on 3000");
+  // });
 };
 
 startServer();
