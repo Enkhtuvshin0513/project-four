@@ -1,3 +1,5 @@
+import { Context } from "../../../utils/@types";
+import { checkLogin } from "../../../utils/checkLogin";
 import { Book } from "../@types";
 
 const books: Book[] = [
@@ -12,11 +14,15 @@ const books: Book[] = [
 ];
 
 export const bookQueries = {
-  books: () => {
+  books: (_parent: undefined, _arg: undefined, { user }: Context) => {
+    checkLogin(user);
+
     return books;
   },
 
-  book: (_parent: undefined, args: { title: string }, { user }: any) => {
+  book: (_parent: undefined, args: { title: string }, { user }: Context) => {
+    checkLogin(user);
+
     return books.find(book => book.title === args.title);
   }
 };

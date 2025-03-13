@@ -1,19 +1,27 @@
 import { ApolloServer } from "@apollo/server";
-// import { startStandaloneServer } from "@apollo/server/standalone";
-
 import { expressMiddleware } from "@apollo/server/express4";
+import express from "express";
+import jwt from "jsonwebtoken";
+
 import {
   bookSchemaTypes,
   bookSchemaQueries,
   bookSchemaMutations
 } from "../src/modules/book/graphql/schema";
 
+import {
+  userSchemaTypes,
+  userSchemaMutations
+} from "../src/modules/auth/graphql/schema";
+
 import { bookQueries } from "../src/modules/book/graphql/queries";
 
-import express from "express";
-import { Book } from "./modules/book/@types";
 import { bookMutations } from "./modules/book/graphql/mutations";
 import { bookCustomResolvers } from "./modules/book/graphql/resolver";
+
+import { Context } from "./utils/@types";
+import { Book } from "./modules/book/@types";
+import { userMutations } from "./modules/auth/graphql/mutations";
 
 const app = express();
 
@@ -25,16 +33,9 @@ interface Player {
   favoriteBooks?: String[];
 }
 
-interface User {
-  firstName: string;
-}
-
-interface Context {
-  user: User;
-}
-
 const typeDefs = `
   ${bookSchemaTypes}
+  ${userSchemaTypes}
 
   type Player {
     firstName: String
@@ -52,6 +53,7 @@ const typeDefs = `
 
   type Mutation {
     ${bookSchemaMutations}
+    ${userSchemaMutations}
   }
 `;
 
@@ -75,7 +77,8 @@ const resolvers = {
   },
 
   Mutation: {
-    ...bookMutations
+    ...bookMutations,
+    ...userMutations
   },
 
   Book: {
@@ -96,24 +99,6 @@ const server = new ApolloServer<Context>({
   resolvers
 });
 
-// app.get("/books", (_req, res) => {
-//   const newBooks = books.map((book: any) => {
-//     book.authorAndTitle = `${book.author} ${book.title}`;
-//     return book;
-//   });
-
-//   return newBooks;
-// });
-
-// app.get("/book", (_req, res) => {
-//   const newBooks = books.map((book: any) => {
-//     book.authorAndTitle = `${book.author} ${book.title}`;
-//     return book;
-//   });
-
-//   res.send(newBooks[0]);
-// });
-
 const startServer = async () => {
   await server.start();
 
@@ -121,8 +106,20 @@ const startServer = async () => {
     "/graphql",
     express.json(),
     expressMiddleware(server, {
-      context: async () => {
-        return { user: { firstName: "bat" } };
+      context: async ({ req, res }) => {
+        const token = req.headers.authorization;
+
+        if (token) {
+          try {
+            const tokendata = jwt.verify(token, "secret") as any;
+
+            return { user: tokendata?.user };
+          } catch {
+            return { user: null };
+          }
+        }
+
+        return { user: null };
       }
     })
   );
